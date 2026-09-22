@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+
+# Credenciais e ambiente — nunca subir
+.env
+*.key
+*.pem
+secrets*
