@@ -1,0 +1,33 @@
+title: Kerberoasting via RC4 Ticket Encryption
+id: 8f3a1c22-6b7e-4a9d-9f21-7c2e5b4a1d80
+status: experimental
+description: >
+  Detecta possível atividade de Kerberoasting identificando pedidos de ticket
+  de serviço Kerberos (Event ID 4769) com criptografia RC4 (fraca), bem-sucedidos,
+  excluindo a conta krbtgt e contas de máquina. RC4 é solicitado por ferramentas
+  clássicas de roasting por ser mais rápido de quebrar offline que AES.
+references:
+  - https://attack.mitre.org/techniques/T1558/003/
+  - https://adsecurity.org/?p=3513
+author: Leandro Mendes
+date: 2026/09/18
+tags:
+  - attack.credential-access
+  - attack.t1558.003
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4769
+    Status: '0x0'
+    EncryptionTypeName: 'RC4-HMAC'   # equivalente a TicketEncryptionType 0x17
+  filter_krbtgt:
+    ServiceName|startswith: 'krbtgt'
+  filter_machine:
+    ServiceName|endswith: '$'
+  condition: selection and not 1 of filter_*
+falsepositives:
+  - Aplicações legadas que só suportam RC4 (ex.: appliances antigos, stacks Kerberos não-Microsoft)
+  - Contas de serviço sem msDS-SupportedEncryptionTypes configurado
+level: medium
