@@ -50,14 +50,28 @@ Os filtros e o porquê de cada um:
 
 Ao agrupar os 50 resultados por `ServiceName`, os alvos eram: `kr1btgt`, `krbt2gt`, `krb5tgt`, `kr8btgt`... — **variações embaralhadas de "krbtgt"**.
 
-O filtro `not ServiceName: krbtgt*` remove `krbtgt` escrito corretamente, mas deixa passar as letras fora de ordem. O dataset foi construído justamente para explorar essa suposição.
+O filtro `not ServiceName: krbtgt*` remove `krbtgt` escrito corretamente, mas deixa passar as letras fora de ordem. Não sei se foi de propósito, mas o dataset explorou exatamente essa suposição.
 
 **A lição:** uma regra que filtra por **nome** quebra quando o atacante muda o nome. Uma regra que detecta o **comportamento** — uma origem pedindo muitos tickets RC4 em pouco tempo — não depende do nome e não tem esse ponto cego.
+
+### 4. Parte 2: detecção pelo comportamento
+
+Na parte 1 a regra dependia do nome da conta, e foi aí que ela furou. Aqui parei de olhar qual conta foi pedida e passei a olhar quem estava pedindo: agrupei os pedidos 4769 com RC4 por IP de origem, em janelas de 10 minutos, e contei quantas contas diferentes cada IP pediu.
+
+O alerta dispara a partir de 5 contas diferentes na mesma janela. Escolhi contar contas diferentes, e não o total de pedidos, porque um serviço pode pedir ticket para a mesma conta o dia inteiro sem ser ataque. O que não é normal é uma origem pedir para muitas contas diferentes em pouco tempo.
+
+**Resultado: 50 → 1.** Sobrou uma linha: o IP `10.0.1.15`, com 86 pedidos para 25 contas diferentes em 10 minutos. As variações de krbtgt que escaparam na parte 1 apareceram todas juntas, sem a regra saber o nome de nenhuma.
+
+![Query sem limite: 42 grupos, um deles com 25 contas diferentes](screenshots/03-esql-sem-limite-42-resultados.png)
+
+![Query com limite de 5 contas: sobra 1 resultado](screenshots/04-esql-um-resultado.png)
+
+Query completa e limitações em [`queries/esql-comportamental.md`](queries/esql-comportamental.md).
 
 ## Conteúdo do repositório
 
 ```
-queries/       As queries KQL, comentadas
+queries/       As queries KQL e ES|QL, comentadas
 sigma/         A regra de detecção em formato Sigma (portável entre SIEMs)
 screenshots/   Evidências: o contraste 159 → 50 e o agrupamento por conta
 ```
